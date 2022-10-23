@@ -34,6 +34,7 @@ tasks:
       make run
     init: |
       go install github.com/spf13/cobra-cli@latest
+  - command: kubectl port-forward -n openfaas svc/gateway 8080:8080
 
 vscode:
   extensions:
