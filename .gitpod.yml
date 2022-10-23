@@ -2,6 +2,7 @@ image:
   file: .gitpod/Dockerfile
 
 tasks:
+  - command: kubectl port-forward -n openfaas svc/gateway 8080:8080
   - command: |
       # Install commitlint
       npm i -g @commitlint/{config-conventional,cli}
@@ -24,6 +25,13 @@ tasks:
         cobra-cli init
         go mod tidy
       fi
+
+      export OPENFAAS_USER=$(kubectl get secrets -n openfaas basic-auth -o jsonpath='{.data.basic-auth-user}' | base64 -d)
+      export OPENFAAS_PASSWORD=$(kubectl get secrets -n openfaas basic-auth -o jsonpath='{.data.basic-auth-password}' | base64 -d)
+
+      faas login -u $OPENFAAS_USER -p $OPENFAAS_PASSWORD
+
+      make run
     init: |
       go install github.com/spf13/cobra-cli@latest
 
@@ -32,3 +40,8 @@ vscode:
     - donjayamanne.git-extension-pack
     - EditorConfig.EditorConfig
     - golang.go
+
+ports:
+  - port: 8080
+    visibility: private
+    onOpen: notify
