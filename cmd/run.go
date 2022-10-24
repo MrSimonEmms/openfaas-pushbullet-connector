@@ -16,23 +16,23 @@ limitations under the License.
 package cmd
 
 import (
-	"errors"
 	"log"
 	"net/http"
 	"time"
 
+	"github.com/MrSimonEmms/openfaas-pushbullet-connector/pkg/pushbullet"
 	"github.com/openfaas/connector-sdk/types"
 	"github.com/openfaas/faas-provider/auth"
 	"github.com/spf13/cobra"
 )
 
 var runOpts struct {
-	Username    string
-	Password    string
-	GatewayURL  string
-	Topic       string
-	AsyncInvoke bool
-	ContentType string
+	Username        string
+	Password        string
+	GatewayURL      string
+	AsyncInvoke     bool
+	ContentType     string
+	PushbulletToken string
 }
 
 // runCmd represents the run command
@@ -46,10 +46,6 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if runOpts.Topic == "" {
-			return errors.New("topic not set")
-		}
-
 		creds := &auth.BasicAuthCredentials{
 			User:     runOpts.Username,
 			Password: runOpts.Password,
@@ -74,12 +70,38 @@ to quickly create a Cobra application.`,
 		additionalHeaders := http.Header{}
 		additionalHeaders.Add("X-Served-By", "openfaas-pushbullet-connector")
 
-		for {
-			log.Printf("Invoking on topic %s - %s\n", runOpts.Topic, runOpts.GatewayURL)
-			time.Sleep(2 * time.Second)
-			data := []byte("test " + time.Now().String())
-			controller.Invoke(runOpts.Topic, &data, additionalHeaders)
+		pb, err := pushbullet.New(runOpts.PushbulletToken)
+		if err != nil {
+			return err
 		}
+		defer pb.Close()
+
+		receiveCount := 0
+		msgCh := make(chan [3]string)
+
+		pb.SetHandler(func(pb pushbullet.Pushbullet, topic string, push pushbullet.Push) {
+			log.Print("Message incoming")
+			msgCh <- [3]string{topic, push.Iden, push.Payload()}
+		})
+
+		go func() {
+			for {
+				incoming := <-msgCh
+
+				topic := incoming[0]
+				messageId := incoming[1]
+				data := []byte(incoming[2])
+
+				// Add a de-dupe header to the message
+				additionalHeaders.Add("X-Message-Id", messageId)
+
+				controller.Invoke(topic, &data, additionalHeaders)
+
+				receiveCount++
+			}
+		}()
+
+		select {}
 	},
 }
 
@@ -103,7 +125,7 @@ func init() {
 	runCmd.Flags().StringVarP(&runOpts.Username, "username", "u", getEnvvar("OPENFAAS_USER", "admin"), "OpenFaaS username")
 	runCmd.Flags().StringVarP(&runOpts.Password, "password", "p", getEnvvar("OPENFAAS_PASSWORD", ""), "OpenFaaS password")
 	runCmd.Flags().StringVarP(&runOpts.GatewayURL, "gateway", "g", getEnvvar("OPENFAAS_GATEWAY", "http://127.0.0.1:8080"), "Gateway URL")
-	runCmd.Flags().StringVarP(&runOpts.Topic, "topic", "t", getEnvvar("OPENFAAS_TOPIC", ""), "The topic name to/from which to publish/subscribe - this matches the annotation 'topic: <topic>' on the function")
 	runCmd.Flags().BoolVar(&runOpts.AsyncInvoke, "async-invoke", false, "Invoke via queueing using NATS and the function's async endpoint")
 	runCmd.Flags().StringVar(&runOpts.ContentType, "content-type", "application/json", "Response content type")
+	runCmd.Flags().StringVar(&runOpts.PushbulletToken, "pushbullet-token", getEnvvar("PUSHBULLET_TOKEN", ""), "PushBullet token")
 }
