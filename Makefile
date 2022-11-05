@@ -16,3 +16,7 @@ install_openfaas:
 		openfaas \
 		openfaas
 .PHONY: install_openfaas
+
+run:
+	go run . run
+.PHONY: run
