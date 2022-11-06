@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "openfaas-pushbullet-connector.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "openfaas-pushbullet-connector.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "openfaas-pushbullet-connector.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "false"
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "openfaas-pushbullet-connector.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- if .Values.basic_auth }}
+      volumes:
+        - name: auth
+          secret:
+            secretName: basic-auth
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: connector
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.Version }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - run
+            - "--async-invoke={{ .Values.asyncInvoke }}"
+            - "--content-type={{ .Values.contentType }}"
+            - "--gateway={{ .Values.gateway_url }}"
+          env:
+            - name: PUSHBULLET_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.pushbulletToken.secretName }}
+                  key: {{ .Values.pushbulletToken.key }}
+          {{- if .Values.basic_auth }}
+            - name: basic_auth
+              value: "true"
+            - name: secret_mount_path
+              value: "/var/secrets"
+          {{- end }}
+          {{- if .Values.upstream_timeout }}
+            - name: upstream_timeout
+              value: {{ .Values.upstream_timeout | quote }}
+          {{- end }}
+          {{- if .Values.rebuild_interval }}
+            - name: rebuild_interval
+              value: {{ .Values.rebuild_interval | quote }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.basic_auth }}
+          volumeMounts:
+            - name: auth
+              readOnly: true
+              mountPath: "/var/secrets"
+          {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

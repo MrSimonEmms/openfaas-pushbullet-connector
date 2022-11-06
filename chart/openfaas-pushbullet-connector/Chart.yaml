@@ -1,0 +1,17 @@
+apiVersion: v2
+name: openfaas-pushbullet-connector
+description: Trigger OpenFaaS jobs from Pushbullet
+type: application
+version: 0.0.0
+icon: https://raw.githubusercontent.com/openfaas/media/master/OpenFaaS_logo_stacked_opaque.png
+home: https://github.com/MrSimonEmms/openfaas-pushbullet-connector
+maintainers:
+  - name: Simon Emms
+    email: simon@simonemms.com
+    url: https://simonemms.com
+keywords:
+  - connector
+  - functions
+  - openfaas
+  - pushbullet
+  - triggers

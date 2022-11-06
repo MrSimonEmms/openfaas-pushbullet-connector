@@ -1,3 +1,3 @@
-#  New
+#  OpenFaaS PushBullet Connector
 
-A blank project for getting started
+Trigger OpenFaaS jobs from Pushbullet
