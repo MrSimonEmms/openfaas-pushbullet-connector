@@ -40,9 +40,14 @@ var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run the Pushbullet listener",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		creds := &auth.BasicAuthCredentials{
-			User:     runOpts.Username,
-			Password: runOpts.Password,
+		var creds *auth.BasicAuthCredentials
+		if len(runOpts.Password) > 0 {
+			creds = &auth.BasicAuthCredentials{
+				User:     runOpts.Username,
+				Password: runOpts.Password,
+			}
+		} else {
+			creds = types.GetCredentials()
 		}
 
 		config := &types.ControllerConfig{
