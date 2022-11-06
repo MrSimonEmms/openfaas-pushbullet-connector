@@ -117,10 +117,20 @@ func (ResponseReceiver) Response(res types.InvokerResponse) {
 func init() {
 	rootCmd.AddCommand(runCmd)
 
+	password := getEnvvar("OPENFAAS_PASSWORD", "")
+	pushbulletToken := getEnvvar("PUSHBULLET_TOKEN", "")
+
 	runCmd.Flags().StringVarP(&runOpts.Username, "username", "u", getEnvvar("OPENFAAS_USER", "admin"), "OpenFaaS username")
-	runCmd.Flags().StringVarP(&runOpts.Password, "password", "p", getEnvvar("OPENFAAS_PASSWORD", ""), "OpenFaaS password")
+	runCmd.Flags().StringVarP(&runOpts.Password, "password", "p", password, "OpenFaaS password")
 	runCmd.Flags().StringVarP(&runOpts.GatewayURL, "gateway", "g", getEnvvar("OPENFAAS_GATEWAY", "http://127.0.0.1:8080"), "Gateway URL")
 	runCmd.Flags().BoolVar(&runOpts.AsyncInvoke, "async-invoke", false, "Invoke via queueing using NATS and the function's async endpoint")
 	runCmd.Flags().StringVar(&runOpts.ContentType, "content-type", "application/json", "Response content type")
-	runCmd.Flags().StringVar(&runOpts.PushbulletToken, "pushbullet-token", getEnvvar("PUSHBULLET_TOKEN", ""), "PushBullet token")
+	runCmd.Flags().StringVar(&runOpts.PushbulletToken, "pushbullet-token", pushbulletToken, "PushBullet token")
+
+	if password != "" {
+		runCmd.Flags().MarkHidden("password")
+	}
+	if pushbulletToken != "" {
+		runCmd.Flags().MarkHidden("pushbullet-token")
+	}
 }
