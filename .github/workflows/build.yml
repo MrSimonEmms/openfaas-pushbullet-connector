@@ -69,3 +69,33 @@ jobs:
           platforms: ${{ steps.docker.outputs.platforms }}
           push: true
           tags: ${{ steps.docker.outputs.image_name }}
+
+      - name: Set Helm version
+        if: steps.branch-name.outputs.is_tag == 'true'
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq -i '.version = "${{ steps.branch-name.outputs.tag }}"' ./chart/openfaas-pushbullet-connector/Chart.yaml
+
+      - name: Sync repo with GitLab
+        if: steps.branch-name.outputs.is_tag == 'true'
+        run: |
+          git remote add gitlab https://MrSimonEmms:${{ secrets.GITLAB_TOKEN }}@gitlab.com/MrSimonEmms/openfaas-pushbullet-connector.git
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          git commit -a -m "chore: set Helm version"
+          git tag ${{ steps.branch-name.outputs.tag }}
+          git push gitlab ${{ steps.branch-name.outputs.tag }} --force
+
+      - name: Publish Helm chart
+        if: steps.branch-name.outputs.is_tag == 'true'
+        run: |
+          NAME=$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $2}' | sed -e "s/:refs//")
+          curl -f -X POST \
+            -F token=${{ secrets.HELM_REPO_TRIGGER_TOKEN }} \
+            -F ref=master \
+            -F variables[PROJECT_OWNER]=${{ github.repository_owner }} \
+            -F variables[PROJECT_CHART_REPO]=${NAME} \
+            -F variables[TAG_NAME]=${{ steps.branch-name.outputs.tag }} \
+            -F variables[CHART_DIR]=chart \
+            -F variables[CHART_NAME]=${NAME} \
+            https://gitlab.com/api/v4/projects/${{ secrets.HELM_REPO_PROJECT_ID }}/trigger/pipeline
