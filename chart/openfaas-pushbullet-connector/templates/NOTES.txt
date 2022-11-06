@@ -1,0 +1,5 @@
+Thanks for installing the Pushbullet connector. Please follow the instructions below to get you started.
+
+You can watch the Connector logs to see it invoke your functions:
+
+kubectl logs -f -n {{ .Release.Namespace }} deploy/{{ include "openfaas-pushbullet-connector.fullname" . }}
