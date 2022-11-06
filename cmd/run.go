@@ -52,6 +52,7 @@ var runCmd = &cobra.Command{
 			PrintResponseBody:        true,
 			TopicAnnotationDelimiter: ",",
 			AsyncFunctionInvocation:  runOpts.AsyncInvoke,
+			ContentType:              runOpts.ContentType,
 		}
 
 		controller := types.NewController(creds, config)
