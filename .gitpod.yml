@@ -42,6 +42,7 @@ vscode:
     - donjayamanne.git-extension-pack
     - EditorConfig.EditorConfig
     - golang.go
+    - ms-kubernetes-tools.vscode-kubernetes-tools
 
 ports:
   - port: 8080
