@@ -1,8 +1,9 @@
-image:
-  file: .gitpod/Dockerfile
-
 tasks:
-  - command: kubectl port-forward -n openfaas svc/gateway 8080:8080
+  - before: |
+      curl -sfL gpm.simonemms.com | bash
+
+      gpm install kubectl helm faas-cli
+    command: kubectl port-forward -n openfaas svc/gateway 8080:8080
   - command: |
       # Install commitlint
       npm i -g @commitlint/{config-conventional,cli}
